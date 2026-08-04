@@ -12,6 +12,8 @@
     --navy-deep:#071B32;
     --turquoise:#0FB5A6;
     --turquoise-soft:#E4F7F4;
+    --coral:#FF8A65;
+    --coral-soft:#FFF1EC;
     --bg:#FAFBFC;
     --card:#FFFFFF;
     --ink:#0B2A4A;
@@ -30,6 +32,8 @@
   }
   .mono{font-family:'IBM Plex Mono',monospace;}
   .display{font-family:'Space Grotesk',sans-serif;}
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+  @keyframes popIn{ from{opacity:0; transform:scale(.9);} to{opacity:1; transform:scale(1);} }
 
   header{
     position:sticky; top:0; z-index:20;
@@ -80,22 +84,46 @@
   }
   .chip{
     flex:0 0 auto;
-    border:1px solid var(--line); background:#fff;
-    border-radius:100px; padding:7px 14px;
-    font-size:13px; color:var(--muted); cursor:pointer;
-    white-space:nowrap;
+    border:1.5px solid var(--line); background:#fff;
+    border-radius:100px; padding:8px 15px;
+    font-size:13px; font-weight:600; color:var(--muted); cursor:pointer;
+    white-space:nowrap; transition:all .15s ease;
   }
+  .chip:hover{border-color:var(--turquoise); color:var(--navy);}
   .chip.active{background:var(--navy); color:#fff; border-color:var(--navy);}
 
   main{max-width:1080px; margin:0 auto; padding:18px 20px 120px;}
+
+  .hero{
+    max-width:1080px; margin:16px auto 4px; padding:0 20px;
+  }
+  .hero-card{
+    background:linear-gradient(120deg, var(--navy) 0%, var(--navy-deep) 100%);
+    border-radius:20px; padding:22px 24px; color:#fff; position:relative; overflow:hidden;
+    animation:fadeUp .4s ease;
+  }
+  .hero-card::after{
+    content:""; position:absolute; right:-40px; top:-40px; width:160px; height:160px;
+    background:radial-gradient(circle, rgba(15,181,166,.35) 0%, transparent 70%);
+  }
+  .hero-eyebrow{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--turquoise); position:relative; z-index:1;}
+  .hero-title{font-family:'Space Grotesk'; font-weight:700; font-size:19px; margin:6px 0 4px; position:relative; z-index:1;}
+  .hero-sub{font-size:13px; color:#C9DCE9; max-width:440px; line-height:1.45; position:relative; z-index:1;}
 
   .grid{
     display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
     gap:14px; margin-top:14px;
   }
   .product{
-    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    background:var(--card); border:1px solid var(--line); border-radius:18px;
     padding:16px; display:flex; flex-direction:column; gap:10px;
+    transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    animation:fadeUp .35s ease both;
+  }
+  .product:hover{
+    transform:translateY(-3px);
+    box-shadow:0 10px 24px rgba(11,42,74,.1);
+    border-color:var(--turquoise-soft);
   }
   .p-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
   .p-cat{font-size:11px; color:var(--turquoise); font-weight:600; letter-spacing:.03em; text-transform:uppercase;}
@@ -130,8 +158,10 @@
   .add-btn{
     flex:1; border:none; background:var(--turquoise-soft); color:var(--navy);
     font-family:'Space Grotesk'; font-weight:600; font-size:13px;
-    padding:8px 10px; border-radius:9px; cursor:pointer;
+    padding:9px 10px; border-radius:10px; cursor:pointer; transition:background .15s ease, transform .1s ease;
   }
+  .add-btn:hover:not(:disabled){background:var(--turquoise); color:#fff;}
+  .add-btn:active:not(:disabled){transform:scale(.96);}
   .add-btn:disabled{opacity:.4; cursor:not-allowed;}
   .add-btn.added{background:var(--turquoise); color:var(--navy-deep);}
 
@@ -202,6 +232,16 @@
   .no-coupons{font-size:12px; color:var(--muted); margin-top:8px;}
 
   .new-form{margin-top:12px; display:flex; flex-direction:column; gap:10px;}
+
+  .welcome-banner{
+    display:flex; align-items:flex-start; gap:10px;
+    background:var(--coral-soft); border:1px solid #FFD9C7; border-radius:14px;
+    padding:12px 14px; margin-bottom:10px; animation:popIn .25s ease;
+  }
+  .welcome-banner.returning{background:var(--turquoise-soft); border-color:#B9E4DC;}
+  .wb-emoji{font-size:20px; line-height:1; margin-top:1px;}
+  .wb-title{font-family:'Space Grotesk'; font-weight:700; font-size:13.5px; color:var(--navy);}
+  .wb-sub{font-size:12px; color:var(--muted); margin-top:2px; line-height:1.4;}
   select.field-input{font-family:'Inter'; -webkit-appearance:none; background:#fff;}
 
   .total-breakdown{font-size:12.5px; color:var(--muted); display:flex; justify-content:space-between; margin-bottom:3px;}
@@ -253,6 +293,8 @@
 </header>
 
 <div class="chips" id="chips"></div>
+
+<div class="hero" id="heroBanner"></div>
 
 <main>
   <div class="grid" id="grid"></div>
@@ -340,9 +382,11 @@ async function loadBackupData(){
     const data = JSON.parse(text);
 
     if(data.products && data.products.length){
-      PRODUCTS = data.products.map(p=>({
-        id:p.id, name:p.name, cat:p.category, price:p.price, stock:p.stock
-      }));
+      PRODUCTS = data.products
+        .filter(p=>p.catalog !== false)
+        .map(p=>({
+          id:p.id, name:p.name, cat:p.category, price:p.price, stock:p.stock
+        }));
     }
     if(data.clients && data.clients.length){
       CLIENTS = {};
@@ -379,6 +423,17 @@ let checkoutState = {phone:"", client:null, found:false, newName:"", newType:"",
 function stockClass(s){ return s===0 ? "out" : s<=5 ? "low" : ""; }
 function stockLabel(s){ return s===0 ? "Agotado" : s<=5 ? `Últimas ${s}` : `${s} disp.`; }
 function vialHeight(s){ return s===0 ? 0 : Math.min(100, Math.max(14, s*2)); }
+
+function renderHero(){
+  const el = document.getElementById("heroBanner");
+  if(!el) return;
+  el.innerHTML = `
+    <div class="hero-card">
+      <div class="hero-eyebrow">Salud que transforma</div>
+      <div class="hero-title">👋 ¡Qué gusto tenerte por aquí!</div>
+      <div class="hero-sub">Explora nuestro catálogo de farmacia, material de curación, equipo médico y más. Arma tu pedido y te lo llevamos hasta la puerta.</div>
+    </div>`;
+}
 
 function renderChips(){
   const cats = ["Todos", ...new Set(PRODUCTS.map(p=>p.cat))];
@@ -444,7 +499,7 @@ function renderCart(){
   document.getElementById("cartCount").textContent = entries.reduce((a,e)=>a+e.qty,0);
   const list = document.getElementById("drawerItems");
   if(entries.length===0){
-    list.innerHTML = `<div class="drawer-empty">Aún no agregas productos.</div>`;
+    list.innerHTML = `<div class="drawer-empty">🛒 Tu pedido está vacío.<br>Explora el catálogo y agrega lo que necesites.</div>`;
   } else {
     list.innerHTML = entries.map(e => `
       <div class="drawer-item">
@@ -520,9 +575,17 @@ function renderClientArea(){
           </label>
         `).join("")}
       </div>
-    ` : `<div class="no-coupons">Sin cupones activos por ahora.</div>`;
+    ` : `<div class="no-coupons">Aún no tienes cupones activos, ¡pero cada visita y compra suma! 🌱</div>`;
 
+    const firstName = (c.name||"").trim().split(" ")[0];
     area.innerHTML = `
+      <div class="welcome-banner returning">
+        <div class="wb-emoji">🎉</div>
+        <div>
+          <div class="wb-title">¡Qué gusto verte de nuevo, ${firstName}!</div>
+          <div class="wb-sub">Gracias por seguir confiando en MEDSUM. Aquí tienes tu cuenta al día.</div>
+        </div>
+      </div>
       <div class="client-card">
         <div class="cc-name">${c.name}</div>
         <div class="cc-type">${c.type}</div>
@@ -532,10 +595,17 @@ function renderClientArea(){
     `;
   } else {
     area.innerHTML = `
+      <div class="welcome-banner">
+        <div class="wb-emoji">✨</div>
+        <div>
+          <div class="wb-title">¡Qué gusto conocerte!</div>
+          <div class="wb-sub">Es tu primera vez por aquí. Cuéntanos un poco de ti para completar tu pedido.</div>
+        </div>
+      </div>
       <div class="new-form">
         <div>
-          <div class="field-label">Cliente nuevo — cuéntanos quién eres</div>
-          <input class="field-input" style="width:100%" placeholder="Nombre completo" oninput="checkoutState.newName=this.value; updateSendState();">
+          <div class="field-label">Nombre completo</div>
+          <input class="field-input" style="width:100%" placeholder="¿Cómo te llamas?" oninput="checkoutState.newName=this.value; updateSendState();">
         </div>
         <select class="field-input" onchange="checkoutState.newType=this.value; updateSendState();">
           <option value="">Tipo de cliente…</option>
@@ -620,6 +690,7 @@ function closeConfirm(){ document.getElementById("confirm").classList.remove("op
 
 document.getElementById("searchInput").addEventListener("input", renderGrid);
 
+renderHero();
 renderCart();
 loadBackupData();
 </script>
