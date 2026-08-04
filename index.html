@@ -43,8 +43,9 @@
   }
   .header-row{
     max-width:1080px; margin:0 auto;
-    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between; gap:12px;
   }
+  .header-top{display:flex; align-items:center; justify-content:space-between; width:100%; gap:16px;}
   .brand{display:flex; align-items:center; gap:10px;}
   .brand-mark{
     width:38px; height:38px; border-radius:9px;
@@ -56,11 +57,12 @@
   .brand-text .name{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px; line-height:1;}
   .brand-text .tag{font-size:10.5px; color:#9FD8D0; letter-spacing:.04em; margin-top:2px;}
   .search{
-    flex:1; max-width:360px;
+    flex:1; max-width:360px; width:100%;
     display:flex; align-items:center; gap:8px;
     background:rgba(255,255,255,.08);
     border:1px solid rgba(255,255,255,.14);
     border-radius:10px; padding:9px 12px;
+    order:3;
   }
   .search input{
     background:transparent; border:none; outline:none; color:#fff;
@@ -258,6 +260,18 @@
   select.field-input{font-family:'Inter'; -webkit-appearance:none; background:#fff;}
 
   .total-breakdown{font-size:12.5px; color:var(--muted); display:flex; justify-content:space-between; margin-bottom:3px;}
+  .shipping-progress{
+    background:var(--coral-soft); border:1px solid #FFD9C7; border-radius:12px;
+    padding:9px 11px; margin-top:8px;
+  }
+  .shipping-progress-text{font-size:11.5px; color:var(--navy); line-height:1.4;}
+  .shipping-progress-bar{
+    height:6px; background:#FFE0D2; border-radius:4px; overflow:hidden; margin-top:6px;
+  }
+  .shipping-progress-fill{
+    height:100%; background:linear-gradient(90deg, var(--coral), var(--turquoise));
+    border-radius:4px; transition:width .3s ease;
+  }
 
   .confirm{
     position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
@@ -280,7 +294,8 @@
   }
 
   @media (max-width:480px){
-    .search{display:none;}
+    .search{flex-basis:100%; max-width:100%; order:3;}
+    .header-top{order:1;}
   }
 </style>
 </head>
@@ -288,20 +303,22 @@
 
 <header>
   <div class="header-row">
-    <div class="brand">
-      <div class="brand-mark"><img id="brandLogoImg" alt="MEDSUM"></div>
-      <div class="brand-text">
-        <div class="name">MEDSUM</div>
-        <div class="tag">SALUD QUE TRANSFORMA</div>
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-mark"><img id="brandLogoImg" alt="MEDSUM"></div>
+        <div class="brand-text">
+          <div class="name">MEDSUM</div>
+          <div class="tag">SALUD QUE TRANSFORMA</div>
+        </div>
       </div>
+      <button class="cart-pill" onclick="toggleDrawer(true)">
+        Pedido <span class="cart-count" id="cartCount">0</span>
+      </button>
     </div>
     <div class="search">
       <span style="color:#B9C9D6;font-size:14px;">⌕</span>
       <input id="searchInput" placeholder="Buscar producto…">
     </div>
-    <button class="cart-pill" onclick="toggleDrawer(true)">
-      Pedido <span class="cart-count" id="cartCount">0</span>
-    </button>
   </div>
 </header>
 
@@ -432,6 +449,7 @@ async function loadBackupData(){
 let cart = {};
 let activeCat = "Todos";
 const SHIPPING_COST = 50;
+const FREE_SHIPPING_THRESHOLD = 500;
 
 let checkoutState = {phone:"", client:null, found:false, newName:"", newType:"", couponId:null};
 
@@ -534,7 +552,8 @@ function renderCart(){
   const subtotal = entries.reduce((a,e)=>a+e.qty*e.product.price,0);
   const coupon = checkoutState.client?.coupons.find(c=>c.id===checkoutState.couponId);
   const discount = coupon ? subtotal*coupon.pct/100 : 0;
-  const shipping = entries.length>0 ? SHIPPING_COST : 0;
+  const freeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
+  const shipping = entries.length>0 && !freeShipping ? SHIPPING_COST : 0;
   const total = subtotal - discount + shipping;
 
   let breakdownHtml = "";
@@ -543,7 +562,16 @@ function renderCart(){
     if(coupon){
       breakdownHtml += `<div class="total-breakdown"><span>Descuento (${coupon.pct}%)</span><span class="mono">-$${discount.toFixed(2)}</span></div>`;
     }
-    breakdownHtml += `<div class="total-breakdown"><span>Envío estándar</span><span class="mono">$${shipping.toFixed(2)}</span></div>`;
+    if(freeShipping){
+      breakdownHtml += `<div class="total-breakdown"><span>Envío</span><span class="mono" style="color:var(--turquoise);font-weight:700;">¡GRATIS! 🎉</span></div>`;
+    } else {
+      breakdownHtml += `<div class="total-breakdown"><span>Envío estándar</span><span class="mono">$${shipping.toFixed(2)}</span></div>`;
+      const missing = FREE_SHIPPING_THRESHOLD - subtotal;
+      breakdownHtml += `<div class="shipping-progress">
+        <div class="shipping-progress-text">🚚 Te faltan <b>$${missing.toFixed(2)}</b> en tu pedido para el envío gratis</div>
+        <div class="shipping-progress-bar"><div class="shipping-progress-fill" style="width:${Math.min(100,(subtotal/FREE_SHIPPING_THRESHOLD)*100)}%"></div></div>
+      </div>`;
+    }
   }
   document.getElementById("totalBreakdown").innerHTML = breakdownHtml;
   document.getElementById("total").textContent = `$${total.toFixed(2)}`;
@@ -666,7 +694,7 @@ function buildOrderWhatsAppMessage(){
   const subtotal = entries.reduce((a,e)=>a+e.qty*e.product.price,0);
   const coupon = checkoutState.client?.coupons.find(c=>c.id===checkoutState.couponId);
   const discount = coupon ? subtotal*coupon.pct/100 : 0;
-  const shipping = SHIPPING_COST;
+  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const total = subtotal - discount + shipping;
 
   const clientName = checkoutState.client ? checkoutState.client.name : (checkoutState.newName || "Cliente nuevo");
@@ -683,7 +711,7 @@ function buildOrderWhatsAppMessage(){
   });
   msg += `\nSubtotal: $${subtotal.toFixed(2)}\n`;
   if(coupon) msg += `Cupón ${coupon.label} (${coupon.pct}%): -$${discount.toFixed(2)}\n`;
-  msg += `Envío estándar: $${shipping.toFixed(2)}\n`;
+  msg += shipping===0 ? `Envío: ¡GRATIS! 🎉\n` : `Envío estándar: $${shipping.toFixed(2)}\n`;
   msg += `*Total a pagar: $${total.toFixed(2)}*\n\n`;
   msg += `Quedo al pendiente de los datos para realizar el pago. ¡Gracias!`;
   return msg;
