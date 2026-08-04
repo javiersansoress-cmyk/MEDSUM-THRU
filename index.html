@@ -412,13 +412,13 @@ function renderGrid(){
       <div class="p-actions">
         ${qty>0 ? `
           <div class="stepper">
-            <button onclick="changeQty(${p.id},-1)">−</button>
+            <button onclick="changeQty('${p.id}',-1)">−</button>
             <span>${qty}</span>
-            <button onclick="changeQty(${p.id},1)" ${qty>=p.stock?'disabled':''}>+</button>
+            <button onclick="changeQty('${p.id}',1)" ${qty>=p.stock?'disabled':''}>+</button>
           </div>
           <button class="add-btn added" onclick="toggleDrawer(true)">En pedido</button>
         ` : `
-          <button class="add-btn" ${p.stock===0?'disabled':''} onclick="changeQty(${p.id},1)">
+          <button class="add-btn" ${p.stock===0?'disabled':''} onclick="changeQty('${p.id}',1)">
             ${p.stock===0 ? 'Agotado' : 'Agregar'}
           </button>
         `}
