@@ -280,15 +280,15 @@
     <div class="total-row"><span>Total</span><span class="mono" id="total">$0.00</span></div>
     <button class="send-btn" id="continueBtn" onclick="showCheckout()">Continuar</button>
     <button class="send-btn" id="sendBtn" style="display:none" disabled onclick="sendOrder()">Enviar pedido</button>
-    <div class="hint">Al enviar tu pedido te compartiremos por WhatsApp la cuenta para realizar el pago y completarlo.</div>
+    <div class="hint">Al enviar, se abrirá WhatsApp con tu pedido listo para mandarlo a MEDSUM.</div>
   </div>
 </div>
 
 <div class="confirm" id="confirm">
   <div class="confirm-card">
     <div class="confirm-icon">✓</div>
-    <h3>Pedido enviado</h3>
-    <p>MEDSUM recibió tu pedido. Para completarlo, realiza el pago a la cuenta que te enviaremos por WhatsApp (el total ya incluye $50 de envío estándar). En cuanto confirmemos tu pago, te avisaremos por WhatsApp.</p>
+    <h3>¡Casi listo!</h3>
+    <p>Se abrió WhatsApp con tu pedido ya redactado. Solo confirma el envío ahí y MEDSUM te responderá con los datos para realizar tu pago (el total ya incluye $50 de envío estándar).</p>
     <button onclick="closeConfirm()">Entendido</button>
   </div>
 </div>
@@ -569,8 +569,41 @@ function toggleDrawer(open){
   document.getElementById("overlay").classList.toggle("open", open);
 }
 
+const MEDSUM_WHATSAPP = "528332515105"; // 52 (México) + 8332515105
+
+function buildOrderWhatsAppMessage(){
+  const entries = Object.values(cart);
+  const subtotal = entries.reduce((a,e)=>a+e.qty*e.product.price,0);
+  const coupon = checkoutState.client?.coupons.find(c=>c.id===checkoutState.couponId);
+  const discount = coupon ? subtotal*coupon.pct/100 : 0;
+  const shipping = SHIPPING_COST;
+  const total = subtotal - discount + shipping;
+
+  const clientName = checkoutState.client ? checkoutState.client.name : (checkoutState.newName || "Cliente nuevo");
+  const clientType = checkoutState.client ? checkoutState.client.type : (checkoutState.newType || "");
+  const phone = checkoutState.phone;
+
+  let msg = `🛍️ *Nuevo pedido MEDSUM*\n\n`;
+  msg += `👤 Cliente: ${clientName}\n`;
+  msg += `📞 Teléfono: ${phone}\n`;
+  if(clientType) msg += `🏷️ Tipo: ${clientType}\n`;
+  msg += `\n📦 *Productos:*\n`;
+  entries.forEach(e=>{
+    msg += `• ${e.qty} x ${e.product.name} — $${(e.qty*e.product.price).toFixed(2)}\n`;
+  });
+  msg += `\nSubtotal: $${subtotal.toFixed(2)}\n`;
+  if(coupon) msg += `Cupón ${coupon.label} (${coupon.pct}%): -$${discount.toFixed(2)}\n`;
+  msg += `Envío estándar: $${shipping.toFixed(2)}\n`;
+  msg += `*Total a pagar: $${total.toFixed(2)}*\n\n`;
+  msg += `Quedo al pendiente de los datos para realizar el pago. ¡Gracias!`;
+  return msg;
+}
+
 function sendOrder(){
-  // Aquí se conectará al backend (Firebase) que dispara la notificación de WhatsApp.
+  const message = buildOrderWhatsAppMessage();
+  const url = `https://wa.me/${MEDSUM_WHATSAPP}?text=${encodeURIComponent(message)}`;
+  window.open(url, "_blank");
+
   toggleDrawer(false);
   document.getElementById("confirm").classList.add("open");
   cart = {};
