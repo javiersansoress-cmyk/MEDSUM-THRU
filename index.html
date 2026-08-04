@@ -198,9 +198,27 @@
   .drawer-head h2{font-family:'Space Grotesk'; font-size:17px; margin:0;}
   .drawer-head button{background:none; border:none; font-size:20px; cursor:pointer; color:var(--muted);}
   .drawer-items{flex:1; overflow-y:auto; padding:12px 20px;}
-  .drawer-item{display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
-  .di-name{font-weight:500;}
+  .drawer-item{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
+  .di-info{min-width:0; flex:1 1 auto; overflow:hidden;}
+  .di-name{font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .di-sub{color:var(--muted); font-size:12px; font-family:'IBM Plex Mono';}
+  .di-controls{display:flex; align-items:center; gap:8px; flex:0 0 auto;}
+  .di-stepper{
+    display:flex; align-items:center; gap:6px; background:var(--bg);
+    border:1px solid var(--line); border-radius:8px; padding:2px 4px;
+  }
+  .di-stepper button{
+    width:22px; height:22px; border:none; background:#fff; border-radius:6px;
+    font-size:14px; color:var(--navy); cursor:pointer; line-height:1;
+  }
+  .di-stepper button:disabled{opacity:.35; cursor:not-allowed;}
+  .di-stepper span{font-family:'IBM Plex Mono'; font-size:12.5px; min-width:16px; text-align:center;}
+  .di-price{font-size:12.5px; font-weight:600; min-width:56px; text-align:right;}
+  .di-remove{
+    border:none; background:none; cursor:pointer; font-size:14px; padding:2px;
+    opacity:.7;
+  }
+  .di-remove:hover{opacity:1;}
   .drawer-empty{color:var(--muted); font-size:13.5px; text-align:center; margin-top:40px;}
   .drawer-foot{padding:16px 20px; border-top:1px solid var(--line);}
   .total-row{display:flex; justify-content:space-between; font-family:'Space Grotesk'; font-weight:600; font-size:16px; margin-bottom:12px;}
@@ -531,6 +549,11 @@ function changeQty(id, delta){
   renderGrid();
   renderCart();
 }
+function removeCartItem(id){
+  delete cart[id];
+  renderGrid();
+  renderCart();
+}
 
 function renderCart(){
   const entries = Object.values(cart);
@@ -541,11 +564,19 @@ function renderCart(){
   } else {
     list.innerHTML = entries.map(e => `
       <div class="drawer-item">
-        <div>
+        <div class="di-info">
           <div class="di-name">${e.product.name}</div>
-          <div class="di-sub">${e.qty} × $${e.product.price.toFixed(2)}</div>
+          <div class="di-sub">$${e.product.price.toFixed(2)} c/u</div>
         </div>
-        <div class="mono">$${(e.qty*e.product.price).toFixed(2)}</div>
+        <div class="di-controls">
+          <div class="di-stepper">
+            <button onclick="changeQty('${e.product.id}',-1)">−</button>
+            <span>${e.qty}</span>
+            <button onclick="changeQty('${e.product.id}',1)" ${e.qty>=e.product.stock?'disabled':''}>+</button>
+          </div>
+          <div class="di-price mono">$${(e.qty*e.product.price).toFixed(2)}</div>
+          <button class="di-remove" onclick="removeCartItem('${e.product.id}')" aria-label="Eliminar">🗑️</button>
+        </div>
       </div>
     `).join("");
   }
