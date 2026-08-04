@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEDSUM · Pedidos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0B2A4A;
+    --navy-deep:#071B32;
+    --turquoise:#0FB5A6;
+    --turquoise-soft:#E4F7F4;
+    --bg:#FAFBFC;
+    --card:#FFFFFF;
+    --ink:#0B2A4A;
+    --muted:#6B7C8C;
+    --line:#E7ECEF;
+    --amber:#E0A11D;
+    --red:#D64545;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .display{font-family:'Space Grotesk',sans-serif;}
+
+  header{
+    position:sticky; top:0; z-index:20;
+    background:var(--navy);
+    color:#fff;
+    padding:16px 20px;
+  }
+  .header-row{
+    max-width:1080px; margin:0 auto;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-mark{
+    width:34px; height:34px; border-radius:9px;
+    background:var(--turquoise);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700; color:var(--navy-deep); font-size:18px;
+  }
+  .brand-text .name{font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:16px; line-height:1;}
+  .brand-text .tag{font-size:10.5px; color:#9FD8D0; letter-spacing:.04em; margin-top:2px;}
+  .search{
+    flex:1; max-width:360px;
+    display:flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:10px; padding:9px 12px;
+  }
+  .search input{
+    background:transparent; border:none; outline:none; color:#fff;
+    font-family:'Inter'; font-size:14px; width:100%;
+  }
+  .search input::placeholder{color:#B9C9D6;}
+  .cart-pill{
+    display:flex; align-items:center; gap:8px;
+    background:var(--turquoise); color:var(--navy-deep);
+    border:none; border-radius:10px; padding:9px 14px;
+    font-family:'Space Grotesk'; font-weight:600; font-size:14px;
+    cursor:pointer;
+  }
+  .cart-count{
+    background:var(--navy-deep); color:#fff; border-radius:6px;
+    padding:1px 7px; font-size:12px;
+  }
+
+  .chips{
+    max-width:1080px; margin:14px auto 0; padding:0 20px;
+    display:flex; gap:8px; overflow-x:auto; padding-bottom:4px;
+  }
+  .chip{
+    flex:0 0 auto;
+    border:1px solid var(--line); background:#fff;
+    border-radius:100px; padding:7px 14px;
+    font-size:13px; color:var(--muted); cursor:pointer;
+    white-space:nowrap;
+  }
+  .chip.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+
+  main{max-width:1080px; margin:0 auto; padding:18px 20px 120px;}
+
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+    gap:14px; margin-top:14px;
+  }
+  .product{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px; display:flex; flex-direction:column; gap:10px;
+  }
+  .p-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .p-cat{font-size:11px; color:var(--turquoise); font-weight:600; letter-spacing:.03em; text-transform:uppercase;}
+  .p-name{font-family:'Space Grotesk'; font-weight:600; font-size:15.5px; line-height:1.25; margin:3px 0 0;}
+
+  /* Signature element: stock shown as a vial fill indicator */
+  .vial{
+    width:14px; height:34px; border:1.5px solid var(--navy); border-radius:4px;
+    position:relative; overflow:hidden; flex:0 0 auto; background:#fff;
+  }
+  .vial-fill{
+    position:absolute; bottom:0; left:0; right:0;
+    background:var(--turquoise);
+  }
+  .vial.low .vial-fill{background:var(--amber);}
+  .vial.out .vial-fill{background:var(--red);}
+
+  .p-meta{display:flex; justify-content:space-between; align-items:baseline;}
+  .p-price{font-family:'IBM Plex Mono'; font-weight:500; font-size:16px;}
+  .p-stock{font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--muted);}
+  .p-stock.low{color:var(--amber);}
+  .p-stock.out{color:var(--red);}
+
+  .p-actions{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:2px;}
+  .stepper{
+    display:flex; align-items:center; border:1px solid var(--line); border-radius:9px; overflow:hidden;
+  }
+  .stepper button{
+    width:30px; height:30px; border:none; background:#fff; cursor:pointer; font-size:16px; color:var(--navy);
+  }
+  .stepper span{width:28px; text-align:center; font-family:'IBM Plex Mono'; font-size:13px;}
+  .add-btn{
+    flex:1; border:none; background:var(--turquoise-soft); color:var(--navy);
+    font-family:'Space Grotesk'; font-weight:600; font-size:13px;
+    padding:8px 10px; border-radius:9px; cursor:pointer;
+  }
+  .add-btn:disabled{opacity:.4; cursor:not-allowed;}
+  .add-btn.added{background:var(--turquoise); color:var(--navy-deep);}
+
+  /* Cart drawer */
+  .overlay{
+    position:fixed; inset:0; background:rgba(7,27,50,.45);
+    opacity:0; pointer-events:none; transition:opacity .2s; z-index:30;
+  }
+  .overlay.open{opacity:1; pointer-events:auto;}
+  .drawer{
+    position:fixed; top:0; right:0; height:100%; width:min(380px,90vw);
+    background:#fff; z-index:31; transform:translateX(100%);
+    transition:transform .25s ease; display:flex; flex-direction:column;
+  }
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{
+    padding:18px 20px; border-bottom:1px solid var(--line);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .drawer-head h2{font-family:'Space Grotesk'; font-size:17px; margin:0;}
+  .drawer-head button{background:none; border:none; font-size:20px; cursor:pointer; color:var(--muted);}
+  .drawer-items{flex:1; overflow-y:auto; padding:12px 20px;}
+  .drawer-item{display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); font-size:13.5px;}
+  .di-name{font-weight:500;}
+  .di-sub{color:var(--muted); font-size:12px; font-family:'IBM Plex Mono';}
+  .drawer-empty{color:var(--muted); font-size:13.5px; text-align:center; margin-top:40px;}
+  .drawer-foot{padding:16px 20px; border-top:1px solid var(--line);}
+  .total-row{display:flex; justify-content:space-between; font-family:'Space Grotesk'; font-weight:600; font-size:16px; margin-bottom:12px;}
+  .send-btn{
+    width:100%; border:none; background:var(--navy); color:#fff;
+    font-family:'Space Grotesk'; font-weight:600; font-size:14.5px;
+    padding:13px; border-radius:10px; cursor:pointer;
+  }
+  .send-btn:disabled{opacity:.4; cursor:not-allowed;}
+  .hint{font-size:11.5px; color:var(--muted); margin-top:8px; text-align:center;}
+
+  .checkout{border-top:1px solid var(--line); margin-top:4px; padding-top:14px;}
+  .field-label{font-family:'Space Grotesk'; font-weight:600; font-size:13px; margin-bottom:6px;}
+  .phone-row{display:flex; gap:8px;}
+  .field-input{
+    flex:1; border:1px solid var(--line); border-radius:9px; padding:10px 12px;
+    font-family:'IBM Plex Mono'; font-size:14px; outline:none;
+  }
+  .field-input:focus{border-color:var(--turquoise);}
+  .lookup-btn{
+    border:none; background:var(--navy); color:#fff; border-radius:9px; padding:0 16px;
+    font-family:'Space Grotesk'; font-weight:600; font-size:13px; cursor:pointer;
+  }
+  .lookup-btn:disabled{opacity:.4; cursor:not-allowed;}
+
+  .client-card{
+    margin-top:12px; background:var(--turquoise-soft); border-radius:12px; padding:14px;
+  }
+  .cc-name{font-family:'Space Grotesk'; font-weight:600; font-size:14.5px;}
+  .cc-type{font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; margin-top:1px;}
+  .cc-visits{display:flex; align-items:center; gap:6px; margin-top:10px; font-size:12.5px; color:var(--navy);}
+  .cc-visits .n{font-family:'IBM Plex Mono'; font-weight:500;}
+
+  .coupon-list{margin-top:10px; display:flex; flex-direction:column; gap:8px;}
+  .coupon{
+    display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid var(--line);
+    border-radius:10px; padding:10px 12px; cursor:pointer;
+  }
+  .coupon.selected{border-color:var(--turquoise); background:#fff;}
+  .coupon input{accent-color:var(--turquoise);}
+  .coupon-label{font-size:13px; font-weight:500;}
+  .coupon-sub{font-size:11px; color:var(--muted);}
+  .no-coupons{font-size:12px; color:var(--muted); margin-top:8px;}
+
+  .new-form{margin-top:12px; display:flex; flex-direction:column; gap:10px;}
+  select.field-input{font-family:'Inter'; -webkit-appearance:none; background:#fff;}
+
+  .total-breakdown{font-size:12.5px; color:var(--muted); display:flex; justify-content:space-between; margin-bottom:3px;}
+
+  .confirm{
+    position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center;
+    background:rgba(7,27,50,.5); opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .confirm.open{opacity:1; pointer-events:auto;}
+  .confirm-card{
+    background:#fff; border-radius:16px; padding:28px 26px; max-width:320px; text-align:center;
+  }
+  .confirm-icon{
+    width:52px; height:52px; border-radius:50%; background:var(--turquoise-soft);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 14px;
+    font-size:24px; color:var(--turquoise);
+  }
+  .confirm-card h3{font-family:'Space Grotesk'; margin:0 0 6px;}
+  .confirm-card p{color:var(--muted); font-size:13.5px; line-height:1.5; margin:0 0 18px;}
+  .confirm-card button{
+    border:none; background:var(--navy); color:#fff; font-family:'Space Grotesk'; font-weight:600;
+    padding:10px 20px; border-radius:9px; cursor:pointer; font-size:13.5px;
+  }
+
+  @media (max-width:480px){
+    .search{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div class="brand">
+      <div class="brand-mark">M</div>
+      <div class="brand-text">
+        <div class="name">MEDSUM</div>
+        <div class="tag">SALUD QUE TRANSFORMA</div>
+      </div>
+    </div>
+    <div class="search">
+      <span style="color:#B9C9D6;font-size:14px;">⌕</span>
+      <input id="searchInput" placeholder="Buscar producto…">
+    </div>
+    <button class="cart-pill" onclick="toggleDrawer(true)">
+      Pedido <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </div>
+</header>
+
+<div class="chips" id="chips"></div>
+
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+
+<div class="overlay" id="overlay" onclick="toggleDrawer(false)"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h2>Tu pedido</h2>
+    <button onclick="toggleDrawer(false)">✕</button>
+  </div>
+  <div class="drawer-items" id="drawerItems"></div>
+
+  <div class="checkout" id="checkoutSection" style="display:none;">
+    <div class="field-label">Tu teléfono</div>
+    <div class="phone-row">
+      <input id="phoneInput" class="field-input" placeholder="10 dígitos" maxlength="10" inputmode="numeric" oninput="onPhoneInput()">
+      <button class="lookup-btn" id="lookupBtn" disabled onclick="lookupPhone()">Buscar</button>
+    </div>
+    <div id="clientArea"></div>
+  </div>
+
+  <div class="drawer-foot">
+    <div id="totalBreakdown"></div>
+    <div class="total-row"><span>Total</span><span class="mono" id="total">$0.00</span></div>
+    <button class="send-btn" id="continueBtn" onclick="showCheckout()">Continuar</button>
+    <button class="send-btn" id="sendBtn" style="display:none" disabled onclick="sendOrder()">Enviar pedido</button>
+    <div class="hint">Se te notificará por WhatsApp en cuanto MEDSUM confirme tu pedido.</div>
+  </div>
+</div>
+
+<div class="confirm" id="confirm">
+  <div class="confirm-card">
+    <div class="confirm-icon">✓</div>
+    <h3>Pedido enviado</h3>
+    <p>MEDSUM recibió tu pedido y te avisará por WhatsApp en cuanto lo confirme.</p>
+    <button onclick="closeConfirm()">Entendido</button>
+  </div>
+</div>
+
+<script>
+// ---- Datos de ejemplo (respaldo si no se encuentra datos-medsum.json) ----
+const FALLBACK_PRODUCTS = [
+  {id:1, name:"Guantes de nitrilo (caja c/100)", cat:"Material de curación", price:189, stock:42},
+  {id:2, name:"Gasas estériles 10x10", cat:"Material de curación", price:65, stock:8},
+  {id:3, name:"Jeringas desechables 5ml (c/50)", cat:"Material de curación", price:145, stock:0},
+  {id:4, name:"Baumanómetro digital", cat:"Equipo médico", price:890, stock:6},
+  {id:5, name:"Termómetro infrarrojo", cat:"Equipo médico", price:420, stock:15},
+  {id:6, name:"Oxímetro de pulso", cat:"Equipo médico", price:310, stock:3},
+  {id:7, name:"Muleta de aluminio (par)", cat:"Ortopedia", price:650, stock:11},
+  {id:8, name:"Férula para muñeca", cat:"Ortopedia", price:275, stock:9},
+  {id:9, name:"Tijera de Mayo", cat:"Instrumental", price:180, stock:20},
+  {id:10, name:"Pinza Kelly curva", cat:"Instrumental", price:210, stock:0},
+  {id:11, name:"Paracetamol 500mg (c/20)", cat:"Farmacia", price:45, stock:60},
+  {id:12, name:"Alcohol antiséptico 1L", cat:"Farmacia", price:78, stock:4},
+];
+const FALLBACK_CLIENTS = {
+  "8331234567": {
+    name:"Dra. Paola Ramírez", type:"Médico", visits:6, spent:1240,
+    coupons:[
+      {id:"c1", label:"5% de descuento", sub:"Por cada 3 visitas", pct:5},
+      {id:"c2", label:"10% de descuento", sub:"Por $1,000 en compras acumuladas", pct:10}
+    ]
+  },
+  "8339876543": {
+    name:"Farmacia San Rafael", type:"Farmacia", visits:2, spent:480, coupons:[]
+  }
+};
+
+// ---- Conexión en vivo con la misma hoja de Google Sheets de tu app de negocio ----
+// IMPORTANTE: debe ser EXACTAMENTE la misma URL que usas en tu app de negocio (APPS_SCRIPT_URL)
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyd45Ka8ZNEbmRc6D_pF-Jl0OyxB9qNsGfQIpoBgqv3R3j6MiQmcHzkyc1FI3QpVvGn/exec';
+
+let PRODUCTS = FALLBACK_PRODUCTS;
+let CLIENTS = FALLBACK_CLIENTS;
+let dataSource = "ejemplo";
+
+async function loadBackupData(){
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {cache:"no-store"});
+    if(!res.ok) throw new Error("sin respuesta");
+    const text = await res.text();
+    if(!text || text === "{}") throw new Error("hoja vacía");
+    const data = JSON.parse(text);
+
+    if(data.products && data.products.length){
+      PRODUCTS = data.products.map(p=>({
+        id:p.id, name:p.name, cat:p.category, price:p.price, stock:p.stock
+      }));
+    }
+    if(data.clients && data.clients.length){
+      CLIENTS = {};
+      data.clients.forEach(c=>{
+        if(!c.phone) return;
+        CLIENTS[c.phone] = {
+          name:c.name,
+          type:c.type==='medico'?'Médico':c.type==='clinica'?'Clínica':c.type==='farmacia'?'Farmacia':'Público en general',
+          visits:c.visits||0,
+          spent:c.purchaseAccum||0,
+          coupons:(c.coupons||[]).filter(cp=>!cp.redeemed).map(cp=>({
+            id:cp.id, label:cp.pct+'% de descuento',
+            sub: cp.source==='compra' ? 'Por compras acumuladas' : 'Por visitas', pct:cp.pct
+          }))
+        };
+      });
+    }
+    dataSource = "en vivo (Google Sheets)";
+    console.log("Inventario y clientes cargados en tiempo real desde Google Sheets.");
+  }catch(e){
+    dataSource = "ejemplo (sin conexión con Google Sheets)";
+    console.log("No se pudo conectar con Google Sheets, usando datos de ejemplo.", e);
+  }
+  renderChips();
+  renderGrid();
+}
+
+let cart = {};
+let activeCat = "Todos";
+
+let checkoutState = {phone:"", client:null, found:false, newName:"", newType:"", couponId:null};
+
+function stockClass(s){ return s===0 ? "out" : s<=5 ? "low" : ""; }
+function stockLabel(s){ return s===0 ? "Agotado" : s<=5 ? `Últimas ${s}` : `${s} disp.`; }
+function vialHeight(s){ return s===0 ? 0 : Math.min(100, Math.max(14, s*2)); }
+
+function renderChips(){
+  const cats = ["Todos", ...new Set(PRODUCTS.map(p=>p.cat))];
+  document.getElementById("chips").innerHTML = cats.map(c =>
+    `<button class="chip ${c===activeCat?'active':''}" onclick="setCat('${c}')">${c}</button>`
+  ).join("");
+}
+function setCat(c){ activeCat = c; renderChips(); renderGrid(); }
+
+function renderGrid(){
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const items = PRODUCTS.filter(p =>
+    (activeCat==="Todos" || p.cat===activeCat) && p.name.toLowerCase().includes(q)
+  );
+  document.getElementById("grid").innerHTML = items.map(p => {
+    const sc = stockClass(p.stock);
+    const qty = cart[p.id]?.qty || 0;
+    return `
+    <div class="product">
+      <div class="p-top">
+        <div>
+          <div class="p-cat">${p.cat}</div>
+          <div class="p-name">${p.name}</div>
+        </div>
+        <div class="vial ${sc}" title="${stockLabel(p.stock)}">
+          <div class="vial-fill" style="height:${vialHeight(p.stock)}%"></div>
+        </div>
+      </div>
+      <div class="p-meta">
+        <div class="p-price">$${p.price.toFixed(2)}</div>
+        <div class="p-stock ${sc}">${stockLabel(p.stock)}</div>
+      </div>
+      <div class="p-actions">
+        ${qty>0 ? `
+          <div class="stepper">
+            <button onclick="changeQty(${p.id},-1)">−</button>
+            <span>${qty}</span>
+            <button onclick="changeQty(${p.id},1)" ${qty>=p.stock?'disabled':''}>+</button>
+          </div>
+          <button class="add-btn added" onclick="toggleDrawer(true)">En pedido</button>
+        ` : `
+          <button class="add-btn" ${p.stock===0?'disabled':''} onclick="changeQty(${p.id},1)">
+            ${p.stock===0 ? 'Agotado' : 'Agregar'}
+          </button>
+        `}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function changeQty(id, delta){
+  const p = PRODUCTS.find(p=>p.id===id);
+  const current = cart[id]?.qty || 0;
+  const next = Math.min(p.stock, Math.max(0, current + delta));
+  if(next===0){ delete cart[id]; }
+  else{ cart[id] = {product:p, qty:next}; }
+  renderGrid();
+  renderCart();
+}
+
+function renderCart(){
+  const entries = Object.values(cart);
+  document.getElementById("cartCount").textContent = entries.reduce((a,e)=>a+e.qty,0);
+  const list = document.getElementById("drawerItems");
+  if(entries.length===0){
+    list.innerHTML = `<div class="drawer-empty">Aún no agregas productos.</div>`;
+  } else {
+    list.innerHTML = entries.map(e => `
+      <div class="drawer-item">
+        <div>
+          <div class="di-name">${e.product.name}</div>
+          <div class="di-sub">${e.qty} × $${e.product.price.toFixed(2)}</div>
+        </div>
+        <div class="mono">$${(e.qty*e.product.price).toFixed(2)}</div>
+      </div>
+    `).join("");
+  }
+  const subtotal = entries.reduce((a,e)=>a+e.qty*e.product.price,0);
+  const coupon = checkoutState.client?.coupons.find(c=>c.id===checkoutState.couponId);
+  const discount = coupon ? subtotal*coupon.pct/100 : 0;
+  const total = subtotal - discount;
+
+  document.getElementById("totalBreakdown").innerHTML = coupon ? `
+    <div class="total-breakdown"><span>Subtotal</span><span class="mono">$${subtotal.toFixed(2)}</span></div>
+    <div class="total-breakdown"><span>Descuento (${coupon.pct}%)</span><span class="mono">-$${discount.toFixed(2)}</span></div>
+  ` : "";
+  document.getElementById("total").textContent = `$${total.toFixed(2)}`;
+  updateSendState();
+}
+
+function showCheckout(){
+  document.getElementById("checkoutSection").style.display = "block";
+  document.getElementById("continueBtn").style.display = "none";
+  document.getElementById("sendBtn").style.display = "block";
+  updateSendState();
+}
+
+function onPhoneInput(){
+  const val = document.getElementById("phoneInput").value.replace(/\D/g,"");
+  document.getElementById("phoneInput").value = val;
+  document.getElementById("lookupBtn").disabled = val.length!==10;
+  // si cambia el teléfono, se limpia la búsqueda previa
+  if(checkoutState.phone !== val){
+    checkoutState = {phone:val, client:null, found:false, newName:"", newType:"", couponId:null};
+    document.getElementById("clientArea").innerHTML = "";
+    updateSendState();
+  }
+}
+
+function lookupPhone(){
+  const phone = document.getElementById("phoneInput").value;
+  checkoutState.phone = phone;
+  const match = CLIENTS[phone];
+  checkoutState.found = true;
+  checkoutState.client = match || null;
+  renderClientArea();
+  updateSendState();
+}
+
+function renderClientArea(){
+  const area = document.getElementById("clientArea");
+  if(checkoutState.client){
+    const c = checkoutState.client;
+    const couponsHtml = c.coupons.length ? `
+      <div class="coupon-list">
+        ${c.coupons.map(cp => `
+          <label class="coupon ${checkoutState.couponId===cp.id?'selected':''}">
+            <input type="radio" name="coupon" ${checkoutState.couponId===cp.id?'checked':''} onchange="selectCoupon('${cp.id}')">
+            <div>
+              <div class="coupon-label">${cp.label}</div>
+              <div class="coupon-sub">${cp.sub}</div>
+            </div>
+          </label>
+        `).join("")}
+      </div>
+    ` : `<div class="no-coupons">Sin cupones activos por ahora.</div>`;
+
+    area.innerHTML = `
+      <div class="client-card">
+        <div class="cc-name">${c.name}</div>
+        <div class="cc-type">${c.type}</div>
+        <div class="cc-visits">Visitas registradas: <span class="n">${c.visits}</span></div>
+        ${couponsHtml}
+      </div>
+    `;
+  } else {
+    area.innerHTML = `
+      <div class="new-form">
+        <div>
+          <div class="field-label">Cliente nuevo — cuéntanos quién eres</div>
+          <input class="field-input" style="width:100%" placeholder="Nombre completo" oninput="checkoutState.newName=this.value; updateSendState();">
+        </div>
+        <select class="field-input" onchange="checkoutState.newType=this.value; updateSendState();">
+          <option value="">Tipo de cliente…</option>
+          <option value="Público en general">Público en general</option>
+          <option value="Médico">Médico</option>
+          <option value="Clínica">Clínica</option>
+          <option value="Farmacia">Farmacia</option>
+        </select>
+      </div>
+    `;
+  }
+}
+
+function selectCoupon(id){
+  checkoutState.couponId = checkoutState.couponId===id ? null : id;
+  renderClientArea();
+  renderCart();
+}
+
+function updateSendState(){
+  const hasItems = Object.keys(cart).length>0;
+  const phoneOk = checkoutState.phone.length===10 && checkoutState.found;
+  const identityOk = checkoutState.client
+    ? true
+    : (checkoutState.newName.trim().length>1 && checkoutState.newType!=="");
+  document.getElementById("sendBtn").disabled = !(hasItems && phoneOk && identityOk);
+}
+
+function toggleDrawer(open){
+  document.getElementById("drawer").classList.toggle("open", open);
+  document.getElementById("overlay").classList.toggle("open", open);
+}
+
+function sendOrder(){
+  // Aquí se conectará al backend (Firebase) que dispara la notificación de WhatsApp.
+  toggleDrawer(false);
+  document.getElementById("confirm").classList.add("open");
+  cart = {};
+  checkoutState = {phone:"", client:null, found:false, newName:"", newType:"", couponId:null};
+  document.getElementById("checkoutSection").style.display = "none";
+  document.getElementById("continueBtn").style.display = "block";
+  document.getElementById("sendBtn").style.display = "none";
+  document.getElementById("phoneInput").value = "";
+  document.getElementById("clientArea").innerHTML = "";
+  renderGrid();
+  renderCart();
+}
+function closeConfirm(){ document.getElementById("confirm").classList.remove("open"); }
+
+document.getElementById("searchInput").addEventListener("input", renderGrid);
+
+renderCart();
+loadBackupData();
+</script>
+</body>
+</html>
