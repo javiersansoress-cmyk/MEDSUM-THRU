@@ -280,7 +280,7 @@
     <div class="total-row"><span>Total</span><span class="mono" id="total">$0.00</span></div>
     <button class="send-btn" id="continueBtn" onclick="showCheckout()">Continuar</button>
     <button class="send-btn" id="sendBtn" style="display:none" disabled onclick="sendOrder()">Enviar pedido</button>
-    <div class="hint">Se te notificará por WhatsApp en cuanto MEDSUM confirme tu pedido.</div>
+    <div class="hint">Al enviar tu pedido te compartiremos por WhatsApp la cuenta para realizar el pago y completarlo.</div>
   </div>
 </div>
 
@@ -288,10 +288,11 @@
   <div class="confirm-card">
     <div class="confirm-icon">✓</div>
     <h3>Pedido enviado</h3>
-    <p>MEDSUM recibió tu pedido y te avisará por WhatsApp en cuanto lo confirme.</p>
+    <p>MEDSUM recibió tu pedido. Para completarlo, realiza el pago a la cuenta que te enviaremos por WhatsApp (el total ya incluye $50 de envío estándar). En cuanto confirmemos tu pago, te avisaremos por WhatsApp.</p>
     <button onclick="closeConfirm()">Entendido</button>
   </div>
 </div>
+
 
 <script>
 // ---- Datos de ejemplo (respaldo si no se encuentra datos-medsum.json) ----
@@ -371,6 +372,7 @@ async function loadBackupData(){
 
 let cart = {};
 let activeCat = "Todos";
+const SHIPPING_COST = 50;
 
 let checkoutState = {phone:"", client:null, found:false, newName:"", newType:"", couponId:null};
 
@@ -457,12 +459,18 @@ function renderCart(){
   const subtotal = entries.reduce((a,e)=>a+e.qty*e.product.price,0);
   const coupon = checkoutState.client?.coupons.find(c=>c.id===checkoutState.couponId);
   const discount = coupon ? subtotal*coupon.pct/100 : 0;
-  const total = subtotal - discount;
+  const shipping = entries.length>0 ? SHIPPING_COST : 0;
+  const total = subtotal - discount + shipping;
 
-  document.getElementById("totalBreakdown").innerHTML = coupon ? `
-    <div class="total-breakdown"><span>Subtotal</span><span class="mono">$${subtotal.toFixed(2)}</span></div>
-    <div class="total-breakdown"><span>Descuento (${coupon.pct}%)</span><span class="mono">-$${discount.toFixed(2)}</span></div>
-  ` : "";
+  let breakdownHtml = "";
+  if(entries.length>0){
+    breakdownHtml += `<div class="total-breakdown"><span>Subtotal</span><span class="mono">$${subtotal.toFixed(2)}</span></div>`;
+    if(coupon){
+      breakdownHtml += `<div class="total-breakdown"><span>Descuento (${coupon.pct}%)</span><span class="mono">-$${discount.toFixed(2)}</span></div>`;
+    }
+    breakdownHtml += `<div class="total-breakdown"><span>Envío estándar</span><span class="mono">$${shipping.toFixed(2)}</span></div>`;
+  }
+  document.getElementById("totalBreakdown").innerHTML = breakdownHtml;
   document.getElementById("total").textContent = `$${total.toFixed(2)}`;
   updateSendState();
 }
